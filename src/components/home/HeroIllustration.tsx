@@ -21,20 +21,20 @@ export const HeroIllustration: React.FC = () => {
       {/* Tilted Main Video Card */}
       <View style={styles.tiltedCardWrapper}>
         <LinearGradient
-          colors={['#F472B6', '#8B5CF6']}
+          colors={['#F044C8', '#7138F5']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.cardGradient}
         >
           {/* Card inner background */}
           <LinearGradient
-            colors={['rgba(255, 255, 255, 0.95)', 'rgba(243, 232, 255, 0.9)']}
+            colors={['rgba(255, 255, 255, 0.98)', 'rgba(245, 240, 255, 0.95)']}
             style={styles.cardInner}
           >
             {/* Center Play Button */}
             <View style={styles.playButtonCircle}>
               <LinearGradient
-                colors={['#EC4899', '#7C3AED']}
+                colors={['#F044C8', '#7138F5']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.playGradient}
@@ -48,7 +48,7 @@ export const HeroIllustration: React.FC = () => {
         {/* Floating Download Circular Badge on Bottom Right */}
         <View style={styles.downloadBadgeWrapper}>
           <LinearGradient
-            colors={['#7C3AED', '#6D28D9']}
+            colors={['#7138F5', '#4C1DCE']}
             style={styles.downloadBadge}
           >
             <Download size={14} color="#FFFFFF" strokeWidth={2.6} />

@@ -89,8 +89,8 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: colors.surfaceCard,
-    borderTopColor: colors.borderSubtle,
+    backgroundColor: '#FFFFFF',
+    borderTopColor: '#EDEBF8',
     borderTopWidth: 1,
     elevation: 8,
     shadowColor: '#000',
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     top: -8,
     width: 32,
     height: 3,
-    backgroundColor: colors.primaryPurple,
+    backgroundColor: '#7138F5',
     borderRadius: 2,
   },
 });

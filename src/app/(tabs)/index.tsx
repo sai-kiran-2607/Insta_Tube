@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Keyboard,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -13,9 +13,8 @@ import {
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
-  AlertCircle,
-  CheckCircle2,
   Clipboard as ClipboardIcon,
   Download,
   Link2,
@@ -24,9 +23,13 @@ import {
 } from 'lucide-react-native';
 import { LogoEmblem } from '@/components/common/LogoEmblem';
 import { ScreenContainer } from '@/components/common/ScreenContainer';
+import { ErrorCard } from '@/components/common/ErrorCard';
+import { PermissionModal } from '@/components/common/PermissionModal';
 import { EmptyStateBox } from '@/components/home/EmptyStateBox';
 import { HeroIllustration } from '@/components/home/HeroIllustration';
 import { MediaPreviewCard } from '@/components/home/MediaPreviewCard';
+import { ProcessingCard } from '@/components/home/ProcessingCard';
+import { DownloadSuccessCard } from '@/components/home/DownloadSuccessCard';
 import { useDownloads } from '@/hooks/useDownloads';
 import { useShareIntentHandler } from '@/hooks/useShareIntentHandler';
 import { ProviderMediaInfo } from '@/services/providers/BaseProvider';
@@ -42,9 +45,11 @@ export default function HomeScreen() {
   const [resolvedMedia, setResolvedMedia] = useState<ProviderMediaInfo | null>(null);
   const [notice, setNotice] = useState<{
     type: 'error' | 'warning' | 'success';
+    title?: string;
     message: string;
   } | null>(null);
   const [downloadSuccessItem, setDownloadSuccessItem] = useState<DownloadItem | null>(null);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
 
   // Screen entrance animation (fade-in + slide-up)
   const [fadeAnim] = useState(() => new Animated.Value(0));
@@ -66,12 +71,12 @@ export default function HomeScreen() {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 320,
+        duration: 350,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 320,
+        duration: 400,
         useNativeDriver: true,
       }),
     ]).start();
@@ -84,6 +89,7 @@ export default function HomeScreen() {
     if (!targetUrl) {
       setNotice({
         type: 'error',
+        title: 'Empty Link',
         message: 'Please paste or enter an Instagram Reel link.',
       });
       return;
@@ -93,7 +99,8 @@ export default function HomeScreen() {
     if (!parseResult.isValid) {
       setNotice({
         type: 'error',
-        message: parseResult.errorMessage || 'Invalid URL entered.',
+        title: 'Invalid Link',
+        message: parseResult.errorMessage || 'Please paste a valid Instagram Reel link.',
       });
       return;
     }
@@ -111,6 +118,7 @@ export default function HomeScreen() {
         setResolvedMedia(null);
         setNotice({
           type: 'error',
+          title: 'Retrieval Error',
           message:
             mediaInfo.technicalLimitation ||
             'Could not extract a downloadable video stream from this link.',
@@ -120,6 +128,7 @@ export default function HomeScreen() {
       const msg = err instanceof Error ? err.message : 'Media resolution failed.';
       setNotice({
         type: 'error',
+        title: 'Retrieval Error',
         message: msg,
       });
       setResolvedMedia(null);
@@ -152,10 +161,7 @@ export default function HomeScreen() {
       const latest = downloads.find((d) => d.id === finishedId);
       if (latest && latest.status === 'completed' && latest.fileExistsOnDisk) {
         setDownloadSuccessItem(latest);
-        setNotice({
-          type: 'success',
-          message: 'Video downloaded successfully to your device!',
-        });
+        setNotice(null);
         // Auto-export to gallery if permissible
         if (latest.fileUri && !latest.savedToGallery) {
           exportToGallery(latest.fileUri).catch(() => {});
@@ -163,6 +169,7 @@ export default function HomeScreen() {
       } else if (latest && latest.status === 'failed') {
         setNotice({
           type: 'error',
+          title: 'Download Failed',
           message: latest.errorMessage || 'Download failed due to network error.',
         });
       }
@@ -194,6 +201,7 @@ export default function HomeScreen() {
       if (!hasString) {
         setNotice({
           type: 'warning',
+          title: 'Clipboard Empty',
           message: 'Clipboard is empty. Copy an Instagram Reel link first.',
         });
         return;
@@ -208,6 +216,7 @@ export default function HomeScreen() {
     } catch {
       setNotice({
         type: 'error',
+        title: 'Clipboard Error',
         message: 'Could not access clipboard.',
       });
     }
@@ -217,8 +226,8 @@ export default function HomeScreen() {
     setUrl('');
     setNotice(null);
     setResolvedMedia(null);
+    setDownloadSuccessItem(null);
   };
-
 
   const handleStartDownload = async (qualityId: string) => {
     if (!resolvedMedia || !resolvedMedia.downloadUrl) return;
@@ -259,6 +268,7 @@ export default function HomeScreen() {
       const msg = err instanceof Error ? err.message : 'Download initiation failed.';
       setNotice({
         type: 'error',
+        title: 'Download Error',
         message: msg,
       });
     }
@@ -270,7 +280,11 @@ export default function HomeScreen() {
     try {
       await WebBrowser.openBrowserAsync(previewUrl!);
     } catch {
-      Alert.alert('Preview', 'Could not open video preview.');
+      setNotice({
+        type: 'error',
+        title: 'Preview Error',
+        message: 'Could not open video preview.',
+      });
     }
   };
 
@@ -280,6 +294,7 @@ export default function HomeScreen() {
     await Clipboard.setStringAsync(linkToCopy);
     setNotice({
       type: 'success',
+      title: 'Copied',
       message: 'Video link copied to clipboard!',
     });
   };
@@ -292,6 +307,7 @@ export default function HomeScreen() {
       await Clipboard.setStringAsync(shareUrl);
       setNotice({
         type: 'success',
+        title: 'Share Link',
         message: 'Link copied for sharing.',
       });
     }
@@ -308,7 +324,7 @@ export default function HomeScreen() {
           },
         ]}
       >
-        {/* Top Header */}
+        {/* Top Header matching Reference Screen 2-5 */}
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <LogoEmblem size={44} />
@@ -317,7 +333,7 @@ export default function HomeScreen() {
                 <Text style={styles.appNameDark}>Reel</Text>
                 <Text style={styles.appNamePurple}>Fetch</Text>
               </View>
-              <Text style={styles.headerSubtitle}>Save videos you love</Text>
+              <Text style={styles.headerSubtitle}>Instagram Reels Saver</Text>
             </View>
           </View>
 
@@ -330,7 +346,7 @@ export default function HomeScreen() {
             ]}
             accessibilityLabel="Open Settings"
           >
-            <Settings size={20} color={colors.textSecondary} />
+            <Settings size={20} color="#68708A" />
           </Pressable>
         </View>
 
@@ -339,10 +355,12 @@ export default function HomeScreen() {
           <View style={styles.heroTextCol}>
             <Text style={styles.heroTitle}>
               Download your{' '}
-              <Text style={styles.heroTitleHighlight}>video</Text>
+              <Text style={styles.heroTitleHighlight}>Reels</Text>
             </Text>
             <Text style={styles.heroSubtitle}>
-              Paste an Instagram Reel link to get started.
+              {isResolving
+                ? 'Fetching video details...'
+                : 'Paste an Instagram Reel link to get started.'}
             </Text>
           </View>
 
@@ -361,7 +379,7 @@ export default function HomeScreen() {
               notice?.type === 'error' && styles.inputBoxError,
             ]}
           >
-            <Link2 size={18} color="#94A3B8" style={styles.inputLinkIcon} />
+            <Link2 size={18} color="#969EB5" style={styles.inputLinkIcon} />
             <TextInput
               value={url}
               onChangeText={(val) => {
@@ -369,7 +387,7 @@ export default function HomeScreen() {
                 if (notice) setNotice(null);
               }}
               placeholder="Paste Instagram Reel link here"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#969EB5"
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
@@ -384,7 +402,7 @@ export default function HomeScreen() {
                 style={styles.clearBtn}
                 accessibilityLabel="Clear input"
               >
-                <X size={16} color="#94A3B8" />
+                <X size={16} color="#969EB5" />
               </Pressable>
             )}
           </View>
@@ -398,7 +416,10 @@ export default function HomeScreen() {
                 onPressIn={() => animatePressIn(pasteScale)}
                 onPressOut={() => animatePressOut(pasteScale)}
                 disabled={isResolving || !!activeDownload}
-                style={styles.pasteButton}
+                style={[
+                  styles.pasteButton,
+                  (isResolving || !!activeDownload) && styles.pasteButtonDisabled,
+                ]}
                 accessibilityLabel="Paste link from clipboard"
               >
                 <ClipboardIcon size={16} color={colors.primaryPurple} />
@@ -420,55 +441,60 @@ export default function HomeScreen() {
                 ]}
                 accessibilityLabel="Get video"
               >
-                {isResolving ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" style={styles.getIcon} />
-                ) : (
-                  <Download size={18} color="#FFFFFF" strokeWidth={2.4} style={styles.getIcon} />
-                )}
-                <Text style={styles.getVideoButtonText}>
-                  {isResolving ? 'Resolving...' : 'Get Video'}
-                </Text>
+                <LinearGradient
+                  colors={
+                    !url.trim() || isResolving || !!activeDownload
+                      ? ['#E2DCF8', '#D3CCF5']
+                      : ['#7138F5', '#4C1DCE']
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.getVideoGradient}
+                >
+                  {isResolving ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" style={styles.getIcon} />
+                  ) : (
+                    <Download size={18} color="#FFFFFF" strokeWidth={2.4} style={styles.getIcon} />
+                  )}
+                  <Text style={styles.getVideoButtonText}>
+                    {isResolving ? 'Fetching...' : 'Get Video'}
+                  </Text>
+                </LinearGradient>
               </Pressable>
             </Animated.View>
           </View>
         </View>
 
-        {/* Inline Notice Banner (Errors, Warnings, Success) */}
-        {notice && (
-          <View
-            style={[
-              styles.noticeBanner,
-              notice.type === 'error'
-                ? styles.noticeError
-                : notice.type === 'success'
-                ? styles.noticeSuccess
-                : styles.noticeWarning,
-            ]}
-          >
-            {notice.type === 'error' ? (
-              <AlertCircle size={16} color={colors.error} />
-            ) : notice.type === 'success' ? (
-              <CheckCircle2 size={16} color={colors.success} />
-            ) : (
-              <AlertCircle size={16} color={colors.warning} />
-            )}
-            <Text
-              style={[
-                styles.noticeText,
-                notice.type === 'error'
-                  ? styles.noticeTextError
-                  : notice.type === 'success'
-                  ? styles.noticeTextSuccess
-                  : styles.noticeTextWarning,
-              ]}
-            >
-              {notice.message}
-            </Text>
-          </View>
+        {/* Error Screen State (Screen 10) */}
+        {notice?.type === 'error' && (
+          <ErrorCard
+            title={notice.title || 'Invalid Link'}
+            message={notice.message}
+          />
         )}
 
-        {/* Dynamic Center Section: Empty State or Media Preview Card */}
-        {resolvedMedia ? (
+        {/* Dynamic Center Area: Screen 3 (Processing) -> Screen 6 (Success) -> Screen 4/5 (Preview) -> Screen 2 (Empty) */}
+        {isResolving ? (
+          <ProcessingCard />
+        ) : downloadSuccessItem ? (
+          <DownloadSuccessCard
+            isAudio={
+              downloadSuccessItem.fileUri?.endsWith('.m4a') ||
+              downloadSuccessItem.fileUri?.endsWith('.mp3')
+            }
+            onViewInGallery={() => {
+              if (downloadSuccessItem.fileUri) {
+                WebBrowser.openBrowserAsync(downloadSuccessItem.fileUri).catch(() => {});
+              }
+            }}
+            onDownloadAnother={() => {
+              setDownloadSuccessItem(null);
+              setResolvedMedia(null);
+              setUrl('');
+              setNotice(null);
+            }}
+          />
+        ) : resolvedMedia ? (
           <MediaPreviewCard
             mediaInfo={resolvedMedia}
             activeDownload={activeDownload}
@@ -479,6 +505,7 @@ export default function HomeScreen() {
             onShare={handleShareMedia}
           />
         ) : (
+          /* Empty State (Reference Screen 2) */
           <View style={styles.emptyStateContainer}>
             <EmptyStateBox />
             <Text style={styles.emptyStateHeading}>
@@ -490,6 +517,18 @@ export default function HomeScreen() {
           </View>
         )}
       </Animated.View>
+
+      {/* Permissions Screen/Modal (Reference Screen 9) */}
+      <PermissionModal
+        visible={showPermissionModal}
+        onAllow={async () => {
+          setShowPermissionModal(false);
+          try {
+            await Linking.openSettings();
+          } catch {}
+        }}
+        onDismiss={() => setShowPermissionModal(false)}
+      />
     </ScreenContainer>
   );
 }
@@ -498,6 +537,7 @@ const styles = StyleSheet.create({
   contentWrapper: {
     paddingHorizontal: 20,
     paddingTop: 12,
+    paddingBottom: 24,
   },
   headerRow: {
     flexDirection: 'row',
@@ -519,26 +559,28 @@ const styles = StyleSheet.create({
   appNameDark: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#111827',
-    letterSpacing: -0.3,
+    color: '#17152A',
+    letterSpacing: -0.4,
   },
   appNamePurple: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.primaryPurple,
-    letterSpacing: -0.3,
+    color: '#7138F5',
+    letterSpacing: -0.4,
   },
   headerSubtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
+    fontSize: 12,
+    color: '#68708A',
     fontWeight: '500',
-    marginTop: 1,
+    marginTop: 2,
   },
   settingsButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#FAFAFD',
+    borderWidth: 1,
+    borderColor: '#EDEBF8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -555,18 +597,19 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#111827',
+    color: '#17152A',
     letterSpacing: -0.5,
     lineHeight: 34,
   },
   heroTitleHighlight: {
-    color: colors.primaryPurple,
+    color: '#7138F5',
   },
   heroSubtitle: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: '#68708A',
     marginTop: 6,
     lineHeight: 20,
+    fontWeight: '400',
   },
   heroIllustrationCol: {
     alignItems: 'center',
@@ -574,30 +617,30 @@ const styles = StyleSheet.create({
   },
   inputCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: '#EDEBF8',
     padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowColor: '#7138F5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
     elevation: 2,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderRadius: 25,
-    height: 48,
+    borderColor: '#EDEBF8',
+    borderRadius: 14,
+    height: 50,
     paddingHorizontal: 14,
     marginBottom: 12,
   },
   inputBoxError: {
-    borderColor: colors.error,
+    borderColor: 'rgba(220, 53, 69, 0.4)',
   },
   inputLinkIcon: {
     marginRight: 10,
@@ -605,7 +648,7 @@ const styles = StyleSheet.create({
   textInputField: {
     flex: 1,
     fontSize: 14,
-    color: '#111827',
+    color: '#17152A',
     height: '100%',
   },
   clearBtn: {
@@ -617,84 +660,48 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   pasteButton: {
-    height: 46,
-    paddingHorizontal: 20,
+    height: 48,
+    paddingHorizontal: 22,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#C084FC',
+    borderColor: '#7138F5',
     backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
+  pasteButtonDisabled: {
+    opacity: 0.45,
+  },
   pasteButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.primaryPurple,
+    color: '#7138F5',
   },
   getVideoButton: {
-    height: 46,
+    height: 48,
     borderRadius: 14,
-    backgroundColor: colors.primaryPurple,
+    overflow: 'hidden',
+  },
+  getVideoButtonDisabled: {
+    opacity: 0.7,
+  },
+  getVideoGradient: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.primaryPurple,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  getVideoButtonDisabled: {
-    opacity: 0.5,
+    gap: 8,
+    paddingHorizontal: 16,
   },
   getIcon: {
-    marginRight: 8,
+    marginRight: 2,
   },
   getVideoButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
-  },
-  noticeBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 16,
-    gap: 8,
-  },
-  noticeError: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  noticeSuccess: {
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-  },
-  noticeWarning: {
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FEF3C7',
-  },
-  noticeText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 18,
-  },
-  noticeTextError: {
-    color: colors.error,
-  },
-  noticeTextSuccess: {
-    color: colors.success,
-  },
-  noticeTextWarning: {
-    color: colors.warning,
   },
   emptyStateContainer: {
     alignItems: 'center',
@@ -703,21 +710,22 @@ const styles = StyleSheet.create({
   },
   emptyStateHeading: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: '800',
+    color: '#17152A',
     textAlign: 'center',
     marginTop: 18,
     marginBottom: 6,
+    letterSpacing: -0.3,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: '#68708A',
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 280,
   },
   buttonPressed: {
-    transform: [{ scale: 0.96 }],
+    transform: [{ scale: 0.98 }],
     opacity: 0.85,
   },
 });

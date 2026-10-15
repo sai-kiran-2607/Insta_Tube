@@ -4,6 +4,8 @@ import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { colors } from '@/theme/colors';
 
+import { SplashScreenView } from '@/components/common/SplashScreenView';
+
 // Prevent splash screen from auto hiding until resources are loaded
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* ignore error in dev or reload */
@@ -24,8 +26,10 @@ const CustomLightTheme = {
 };
 
 export default function RootLayout() {
+  const [showSplash, setShowSplash] = React.useState(true);
+
   useEffect(() => {
-    // Hide splash screen once mounted
+    // Hide native splash once layout is ready to show animated splash
     SplashScreen.hideAsync().catch(() => {});
   }, []);
 
@@ -41,6 +45,9 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
+      {showSplash && (
+        <SplashScreenView onFinish={() => setShowSplash(false)} />
+      )}
     </ThemeProvider>
   );
 }

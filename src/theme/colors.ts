@@ -6,61 +6,64 @@
 export const colors = {
   // Backgrounds
   background: '#FFFFFF',
-  backgroundElevated: '#F8FAFC',
+  backgroundElevated: '#FAFAFD',
   surface: '#FFFFFF',
   surfaceCard: '#FFFFFF',
   surfaceHighlight: '#F8FAFC',
-  surfaceActive: '#F1F5F9',
-  surfaceLightPurple: '#F3E8FF',
-  surfaceLightPink: '#FDF2F8',
+  surfaceActive: '#F3F2FD',
+  surfaceLightPurple: '#F5F0FF',
+  surfaceLightPink: '#FDF2FA',
 
   // Borders & Dividers
-  borderSubtle: '#E8ECF4',
-  borderStrong: '#CBD5E1',
-  borderFocus: '#7C3AED',
-  borderLightPurple: '#E9D5FF',
+  borderSubtle: '#EDEBF8',
+  borderStrong: '#D9D5EE',
+  borderFocus: '#7138F5',
+  borderLightPurple: '#E8DEFE',
 
-  // Accent Colors (Purple, Violet, Pink)
-  primaryPurple: '#7C3AED',
-  primaryPurpleHover: '#6D28D9',
+  // Accent Colors (ReelFetch Palette)
+  primaryPurple: '#7138F5',
+  primaryPurpleHover: '#5F27E5',
+  deepPurple: '#4C1DCE',
+  accentPink: '#F044C8',
+  secondaryPink: '#F044C8',
   accentViolet: '#8B5CF6',
-  lightPurple: '#F3E8FF',
-  secondaryPink: '#EC4899',
+  lightPurple: '#F5F0FF',
   accentBlue: '#3B82F6',
   accentCyan: '#06B6D4',
 
   // Social / Source Accents
-  instagramPink: '#E1306C',
-  instagramPurple: '#833AB4',
+  instagramPink: '#F044C8',
+  instagramPurple: '#7138F5',
   instagramOrange: '#F77737',
 
   // Semantic Status Colors
-  success: '#10B981',
-  successSurface: '#ECFDF5',
+  success: '#16834A',
+  successSurface: '#EFFDF4',
   warning: '#F59E0B',
   warningSurface: '#FFFBEB',
-  error: '#EF4444',
-  errorSurface: '#FEF2F2',
-  info: '#3B82F6',
-  infoSurface: '#EFF6FF',
+  error: '#DC3545',
+  errorSurface: '#FEF2F3',
+  info: '#7138F5',
+  infoSurface: '#F5F0FF',
 
   // Typography
-  textPrimary: '#111827',
-  textSecondary: '#64748B',
-  textMuted: '#94A3B8',
-  textDisabled: '#CBD5E1',
+  textPrimary: '#17152A',
+  textSecondary: '#68708A',
+  textMuted: '#969EB5',
+  textDisabled: '#CBD1DF',
   textInverse: '#FFFFFF',
 
   // Gradients (color arrays for LinearGradient)
   gradients: {
-    primary: ['#7C3AED', '#EC4899'] as const,
-    accent: ['#7C3AED', '#A855F7'] as const,
-    surface: ['#FFFFFF', '#F8FAFC'] as const,
+    primary: ['#7138F5', '#F044C8'] as const,
+    purpleDeep: ['#7138F5', '#4C1DCE'] as const,
+    accent: ['#7138F5', '#A855F7'] as const,
+    surface: ['#FFFFFF', '#FAFAFD'] as const,
     card: ['#FFFFFF', '#FFFFFF'] as const,
-    instagram: ['#833AB4', '#FD1D1D', '#FCB045'] as const,
-    badgeDark: ['rgba(124, 58, 237, 0.1)', 'rgba(236, 72, 153, 0.05)'] as const,
-    heroIcon: ['#EC4899', '#7C3AED'] as const,
-    badgePurple: ['#F3E8FF', '#FAF5FF'] as const,
+    instagram: ['#7138F5', '#F044C8', '#FFA07A'] as const,
+    badgeDark: ['rgba(113, 56, 245, 0.1)', 'rgba(240, 68, 200, 0.05)'] as const,
+    heroIcon: ['#F044C8', '#7138F5'] as const,
+    badgePurple: ['#F5F0FF', '#FCFAFF'] as const,
   },
 } as const;
 
